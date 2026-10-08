@@ -1,0 +1,32 @@
+name: LaTeX build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install TeX and Biber
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends texlive-luatex texlive-latex-extra texlive-lang-german texlive-bibtex-extra texlive-fonts-recommended biber
+      - name: Compile document
+        run: |
+          lualatex -interaction=nonstopmode -halt-on-error -file-line-error main.tex
+          biber main
+          lualatex -interaction=nonstopmode -halt-on-error -file-line-error main.tex
+          lualatex -interaction=nonstopmode -halt-on-error -file-line-error main.tex
+      - name: Check unresolved references
+        run: |
+          if grep -Eq 'Citation .* undefined|Reference .* undefined|There were undefined references|Please \(re\)run Biber' main.log; then
+            echo 'Unresolved references or citations'; exit 1
+          fi
+      - name: Download PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: Diplomarbeit-PDF
+          path: main.pdf
